@@ -1,0 +1,56 @@
+{
+  "name": "dvyu",
+  "version": "0.1.0",
+  "description": "Drovyu Preview CLI for encrypted temporary static previews.",
+  "private": true,
+  "license": "SEE LICENSE IN LICENSE",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Drovyu/preview-cli.git"
+  },
+  "homepage": "https://github.com/Drovyu/preview-cli#readme",
+  "bugs": {
+    "url": "https://github.com/Drovyu/preview-cli/issues"
+  },
+  "keywords": [
+    "preview",
+    "static-site",
+    "encryption",
+    "vite",
+    "astro",
+    "storybook"
+  ],
+  "bin": {
+    "dvyu": "dist/cli/index.js"
+  },
+  "files": [
+    "dist/cli",
+    "dist/shared.js",
+    "docs/ENCRYPTION.md",
+    "docs/ENCRYPTION.ja.md",
+    "SECURITY.md",
+    "LICENSE",
+    "README.md",
+    "README.ja.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "pnpm run build && node --test test/*.test.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@commander-js/extra-typings": "14.0.0",
+    "commander": "14.0.3",
+    "mime-types": "3.0.2",
+    "picocolors": "1.1.1"
+  },
+  "devDependencies": {
+    "@types/mime-types": "^3.0.1",
+    "@types/node": "^24.0.10",
+    "typescript": "^5.8.3"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

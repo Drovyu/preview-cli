@@ -1,0 +1,25 @@
+Drovyu Source-Available License
+Version 1.0, July 2026
+
+Copyright (c) 2026 Drovyu. All rights reserved.
+
+Permission is granted to view this source code for transparency, security
+review, and evaluation, and to download, install, and run an unmodified copy
+of the official Drovyu Preview CLI solely for its intended purpose of creating
+and managing previews through the Drovyu service.
+
+No permission is granted to modify, reproduce, redistribute, sublicense,
+sell, create derivative works from, or commercially exploit this software or
+its source code. No permission is granted to operate a competing or
+independent service using this software, including its server-side components.
+
+Rights required for viewing and forking public repositories through GitHub's
+functionality remain governed by the GitHub Terms of Service. Those rights do
+not grant permission to use, modify, or distribute this software outside the
+permissions expressly stated above.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY ARISING
+FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE OF THE SOFTWARE.
