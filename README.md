@@ -29,8 +29,8 @@ Requirements:
 Install the npm package:
 
 ```sh
-pnpm add -g dvyu
-npm install -g dvyu
+pnpm add -g @dvyu/cli
+npm install -g @dvyu/cli
 ```
 
 Install directly from GitHub when you need the current `main` branch:
@@ -50,9 +50,9 @@ dvyu create ./dist
 One-off execution from npm:
 
 ```sh
-pnpm dlx dvyu create ./dist
-npx dvyu create ./dist
-yarn dlx dvyu create ./dist
+pnpm dlx @dvyu/cli create ./dist
+npx @dvyu/cli create ./dist
+yarn dlx @dvyu/cli create ./dist
 ```
 
 One-off execution from GitHub:

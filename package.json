@@ -1,15 +1,14 @@
 {
-  "name": "dvyu",
+  "name": "@dvyu/cli",
   "version": "0.1.0",
   "description": "Drovyu Preview CLI for encrypted temporary static previews.",
-  "private": true,
   "license": "SEE LICENSE IN LICENSE",
   "type": "module",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Drovyu/preview-cli.git"
   },
-  "homepage": "https://github.com/Drovyu/preview-cli#readme",
+  "homepage": "https://cli.drovyu.com/",
   "bugs": {
     "url": "https://github.com/Drovyu/preview-cli/issues"
   },
@@ -37,6 +36,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "pnpm run build && node --test test/*.test.mjs",
+    "prepublishOnly": "pnpm test",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
@@ -52,5 +52,9 @@
   },
   "engines": {
     "node": ">=20.0.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   }
 }
