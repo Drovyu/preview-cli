@@ -237,6 +237,7 @@ Supporter benefits:
 - `-p` / `--permanence`
 - `--ttl <duration>` from `1 hour` to `30 days`
 - access to the supporter reserve when the standard service pool is full
+- no Drovyu preview badge on supporter previews
 
 After the supporter period ends, new previews cannot use `-p` or `--ttl`. Existing permanent previews are not deleted immediately, but access no longer extends their expiry and they remain available only until the currently scheduled deletion time. A later payment never shortens an existing entitlement.
 

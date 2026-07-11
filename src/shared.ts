@@ -59,6 +59,7 @@ export type PreviewManifest = {
 export type PreviewRecord = {
   id: string;
   owner: string;
+  supporter_id?: string | null;
   total_size: number;
   expires_at: string;
   created_at: string;
