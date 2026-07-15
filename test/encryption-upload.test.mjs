@@ -73,6 +73,7 @@ test("CLI encrypts every file and the manifest before upload and never sends the
         owner: "test",
         expiresAt: "2030-01-01T00:00:00.000Z",
         createdAt: "2029-01-01T00:00:00.000Z",
+        previewUrl: `https://${previewId}.dvyu.link`,
         uploadBase: `unused/${previewId}/uploads/${uploadId}`,
         uploadId
       }));
@@ -99,6 +100,7 @@ test("CLI encrypts every file and the manifest before upload and never sends the
 
     const outputUrl = result.stdout.match(/https?:\/\/\S+#k=([A-Za-z0-9_-]+)/);
     assert(outputUrl, `preview URL missing from output:\n${result.stdout}`);
+    assert(outputUrl[0].startsWith(`https://${previewId}.dvyu.link#k=`));
     const keyString = outputUrl[1];
     assert.equal(keyString.length, 43);
 

@@ -654,7 +654,7 @@ async function createEncryptedPreview(inputPath, apiUrl = getApiUrl(), options =
         await deletePreview(apiUrl, created.id).catch(() => undefined);
         throw error;
     }
-    const url = `${apiUrl}/p/${created.id}#k=${keyString}`;
+    const url = `${created.previewUrl || `${apiUrl}/p/${created.id}`}#k=${keyString}`;
     await savePreview({
         id: created.id,
         key: keyString,
@@ -687,7 +687,7 @@ async function updateEncryptedPreview(saved, inputPath, apiUrl = saved.apiUrl, o
         await cancelUpload(apiUrl, saved.id, updated.uploadId).catch(() => undefined);
         throw error;
     }
-    const url = `${apiUrl}/p/${saved.id}#k=${saved.key}`;
+    const url = `${updated.previewUrl || `${apiUrl}/p/${saved.id}`}#k=${saved.key}`;
     await savePreview({
         id: saved.id,
         key: saved.key,

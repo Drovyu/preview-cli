@@ -6,6 +6,7 @@ export type CreatePreviewResponse = {
   owner: string;
   expiresAt: string;
   createdAt: string;
+  previewUrl?: string;
   uploadBase: string;
   uploadId: string;
 };
@@ -105,6 +106,14 @@ function validateCreatePreviewResponse(value: unknown): CreatePreviewResponse {
     typeof response.uploadBase !== "string" || response.uploadBase.length > 512 ||
     typeof response.uploadId !== "string" || !/^[A-Za-z0-9_-]{32}$/.test(response.uploadId)
   ) throw new Error("Invalid preview API response");
+  if (response.previewUrl !== undefined) {
+    if (typeof response.previewUrl !== "string" || response.previewUrl.length > 512) throw new Error("Invalid preview API response");
+    const previewUrl = new URL(response.previewUrl);
+    const localHttp = previewUrl.protocol === "http:" && ["localhost", "127.0.0.1", "::1"].includes(previewUrl.hostname);
+    if ((previewUrl.protocol !== "https:" && !localHttp) || previewUrl.username || previewUrl.password || previewUrl.search || previewUrl.hash) {
+      throw new Error("Invalid preview API response");
+    }
+  }
   return response as CreatePreviewResponse;
 }
 

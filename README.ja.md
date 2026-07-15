@@ -13,6 +13,10 @@ CLIは各ファイルとmanifestをローカルで暗号化してからアップ
 `#k=` URL fragmentにだけ保持され、HTTPリクエストでは送信されません。詳細と実行可能な
 検証方法は[暗号化設計](docs/ENCRYPTION.ja.md)を参照してください。
 
+生成URLはpreviewごとに分離したoriginを使います:
+`https://<preview-id>.dvyu.link#k=<復号キー>`。既存の
+`preview.drovyu.com/p/...`リンクはfragment keyを失わず対応するoriginへredirectします。
+
 ```sh
 dvyu create ./dist
 ```
@@ -275,9 +279,9 @@ DVYU_UPLOAD_CONCURRENCY=3 dvyu create ./dist
 
 ## アセットパス
 
-安定して表示するには、静的サイトを相対アセットパスでビルドするのが理想です。`dvyu preview`はViteへ相対baseと選択した出力先を渡します。Astroの`base`は持ち運べる相対baseではなくデプロイ先pathnameなので通常どおりビルドし、root asset pathをDrovyu viewer側で補完します。Storybookは静的ビルドを実行し、既定では`storybook-static`を使います。
+各previewは固有の`<preview-id>.dvyu.link` originで配信するため、root-based asset pathがAPIや別previewと衝突しません。`dvyu preview`はViteへ相対baseと選択した出力先も渡します。Astroの`base`は持ち運べる相対baseではなくデプロイ先pathnameなので通常どおりビルドします。Storybookは静的ビルドを実行し、既定では`storybook-static`を使います。
 
-Astroなど一部のビルダーは`/_astro/...`のようなroot pathを出力します。Drovyu Previewのviewerは、下層ページも含めて同一originのasset linkを補完します。ただし外部originへの完全な絶対URLはそのまま扱います。
+Astro、Storybookなどのbuilderは`/_astro/...`や`/assets/...`のようなroot pathを出力することがあります。Drovyu Previewは下層ページを含めpreview origin内で解決します。ただし外部originへの完全な絶対URLはそのまま扱います。
 
 手動でビルドしてから `dvyu create` する場合は、以下を優先してください。
 

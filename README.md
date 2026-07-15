@@ -13,6 +13,11 @@ The CLI encrypts every file and its manifest locally before upload. The AES key
 is kept in the `#k=` URL fragment and is never sent in an HTTP request. See the
 [encryption design and executable verification](docs/ENCRYPTION.md).
 
+Generated links use an isolated origin for each preview:
+`https://<preview-id>.dvyu.link#k=<decryption-key>`. Existing
+`preview.drovyu.com/p/...` links redirect to the corresponding origin without
+losing the fragment key.
+
 ```sh
 dvyu create ./dist
 ```
@@ -275,9 +280,9 @@ DVYU_UPLOAD_CONCURRENCY=3 dvyu create ./dist
 
 ## Asset Paths
 
-For the most reliable previews, build static sites with relative asset paths. `dvyu preview` passes a relative base and the selected output directory to Vite. Astro is built normally because its `base` option is a deployment pathname rather than a portable relative base; the Drovyu viewer resolves Astro's root asset paths. Storybook uses its static build and `storybook-static` by default.
+Each preview is served from its own `<preview-id>.dvyu.link` origin so root-based asset paths do not collide with the API or another preview. `dvyu preview` also passes a relative base and the selected output directory to Vite. Astro is built normally because its `base` option is a deployment pathname rather than a portable relative base. Storybook uses its static build and `storybook-static` by default.
 
-Astro and some other builders emit root paths such as `/_astro/...`. Drovyu Preview rewrites those paths inside the viewer, including nested pages, but fully absolute URLs to external origins are left as-is.
+Astro, Storybook, and other builders may emit root paths such as `/_astro/...` or `/assets/...`. Drovyu Preview resolves those paths inside the preview origin, including nested pages, but fully absolute URLs to external origins are left as-is.
 
 If you build manually before running `dvyu create`, prefer:
 

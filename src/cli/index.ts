@@ -793,7 +793,7 @@ async function createEncryptedPreview(inputPath: string, apiUrl = getApiUrl(), o
     throw error;
   }
 
-  const url = `${apiUrl}/p/${created.id}#k=${keyString}`;
+  const url = `${created.previewUrl || `${apiUrl}/p/${created.id}`}#k=${keyString}`;
   await savePreview({
     id: created.id,
     key: keyString,
@@ -828,7 +828,7 @@ async function updateEncryptedPreview(saved: NonNullable<Awaited<ReturnType<type
     throw error;
   }
 
-  const url = `${apiUrl}/p/${saved.id}#k=${saved.key}`;
+  const url = `${updated.previewUrl || `${apiUrl}/p/${saved.id}`}#k=${saved.key}`;
   await savePreview({
     id: saved.id,
     key: saved.key,
