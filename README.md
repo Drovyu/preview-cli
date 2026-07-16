@@ -113,6 +113,7 @@ dvyu preview ./my-app
 dvyu preview --out-dir build
 dvyu preview -p
 dvyu preview --ttl 7d
+dvyu preview --no-comments
 ```
 
 Create a preview from a build directory:
@@ -126,6 +127,7 @@ dvyu create ./dist -p
 When no path is provided, `create` uses `dist` if it exists, otherwise `index.html` if it exists.
 The selected file or directory must contain an HTML file. `index.html` is preferred as the entrypoint; otherwise the first `.html` file is used.
 Supporters can use `-p` (`--permanence`) on `create`, `update`, `recreate`, or `preview` to keep a preview URL alive until it has no access for 1 month. They can also set a lifetime from `1h` to `30d`, such as `--ttl 7d`. `-p` and `--ttl` cannot be combined.
+Add `--no-comments` to `preview`, `create`, `update`, or `recreate` to disable the comment UI. An update keeps existing encrypted comments and restores them after a later update without this option.
 
 Create a preview from a single file:
 
@@ -308,10 +310,11 @@ Default limits:
 | Standard lifetime | `48 hours` | `48 hours`, or `1 hour` to `30 days` with `--ttl` |
 | Permanence | Not available | `-p` / `--permanence` |
 | Linked devices | Device-scoped | Up to `2` |
+| Retained comments | Up to `300` per device | Up to `10,000` per supporter |
 
 Service-wide capacity consists of a `3GiB` standard pool, an additional `7GiB` supporter reserve, and a `10GiB` absolute limit. Standard creation stops once total usage reaches 3GiB; only supporters can use the reserve up to 10GiB.
 
-Expired previews are no longer viewable. Supporter permanent previews refresh their inactive cleanup deadline when they are accessed. The supporter reserve is shared by all supporters, and the individual `300MB` limit still applies.
+Expired preview content is no longer viewable. Encrypted comments and replies remain available at the same complete URL for 30 days after expiry; an explicit `dvyu delete` removes them immediately. Each reply counts as one comment for limits and cumulative statistics. Display names, reply relationships, text, and anchors are encrypted with the preview key, and display names are unverified user-provided values. Comments beyond the applicable limit are removed oldest first. Supporter permanent previews refresh their inactive cleanup deadline when they are accessed. The supporter reserve is shared by all supporters, and the individual `300MB` limit still applies.
 
 ## Public Usage Statistics
 
@@ -323,9 +326,9 @@ GET https://preview.drovyu.com/api/public/stats
 
 ```json
 {
-  "devices": 1,
   "devicesEver": 1,
   "previewsCreated": 3,
+  "commentsCreated": 10,
   "encryptedBytesPublished": 1068949,
   "encryptedGigabytesPublished": 0.001,
   "lastPublishedAt": "2026-07-10T08:00:00.000Z",
@@ -333,22 +336,23 @@ GET https://preview.drovyu.com/api/public/stats
 }
 ```
 
-- `devices`: unique devices with at least one active preview at snapshot time; use this for the current device count.
 - `devicesEver`: unique devices that have ever published a preview; this is the cumulative user-count approximation.
 - `previewsCreated`: unique preview URLs successfully published; `update` does not increase it.
+- `commentsCreated`: cumulative comments created. A batch of ten increases this by ten, deletion does not decrement it, and retries with the same comment ids do not double count.
 - `encryptedBytesPublished`: cumulative file ciphertext bytes across successful publications, including new generations published by `update`.
 - `encryptedGigabytesPublished`: the byte value converted to decimal GB (`1GB = 1,000,000,000 bytes`) and rounded to three decimal places.
 - `lastPublishedAt`: timestamp of the latest successful preview or update publication, or `null` if none exists.
 - `updatedAt`: timestamp of the aggregate snapshot refresh.
 
-The snapshot refreshes once a day at approximately `00:17 UTC` (`09:17 JST`), so values may lag by up to about 24 hours. The response allows CORS and can be cached for one hour. A landing page can also format the raw byte value at any desired precision.
+The snapshot refreshes at approximately 17 minutes past every hour, so values may lag by up to about one hour. The response allows CORS and can be cached for one hour. A landing page can also format the raw byte value at any desired precision.
 
 ```js
 const stats = await fetch("https://preview.drovyu.com/api/public/stats")
   .then((response) => response.json());
 
-console.log(`${stats.devices} devices`);
+console.log(`${stats.devicesEver} devices to date`);
 console.log(`${stats.previewsCreated} previews`);
+console.log(`${stats.commentsCreated} comments`);
 console.log(`${stats.encryptedGigabytesPublished.toFixed(3)}GB`);
 ```
 

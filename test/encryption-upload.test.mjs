@@ -113,6 +113,11 @@ test("CLI encrypts every file and the manifest before upload and never sends the
     assert.equal(createBody.encryptedSize, html.length + script.length + 32);
     assert.equal(createBody.fileCount, 2);
     assert.equal(createBody.permanence, true);
+    assert.equal(createBody.commentsEnabled, true);
+    assert.equal(
+      createBody.commentAuthKey,
+      Buffer.from(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`dvyu-comment-auth-v1:${keyString}`))).toString("base64url")
+    );
     assert.equal(createBody.files.length, 2);
     assert(createBody.files.every((file) => /^[A-Za-z0-9_-]{32}$/.test(file.storageKey)));
     assert.deepEqual(
@@ -166,6 +171,57 @@ test("CLI encrypts every file and the manifest before upload and never sends the
       );
       assert.deepEqual(Buffer.from(plain), originalByPath.get(file.path));
     }
+  } finally {
+    server.close();
+    await rm(temporaryRoot, { recursive: true, force: true });
+  }
+});
+
+test("CLI --no-comments omits comment authorization material", async () => {
+  const temporaryRoot = await mkdtemp(path.join(tmpdir(), "dvyu-no-comments-test-"));
+  const siteRoot = path.join(temporaryRoot, "site");
+  const home = path.join(temporaryRoot, "home");
+  const requests = [];
+  const previewId = "1123456789abcdef01234567";
+  const uploadId = "BCDEFGHIJKLMNOPQRSTUVWXYZabcdefg";
+  await mkdir(siteRoot, { recursive: true });
+  await writeFile(path.join(siteRoot, "index.html"), "<!doctype html><title>No comments</title>");
+
+  const server = createServer(async (request, response) => {
+    const body = await requestBody(request);
+    requests.push({ method: request.method, url: request.url, body });
+    if (request.method === "POST" && request.url === "/api/previews") {
+      response.setHeader("content-type", "application/json");
+      response.end(JSON.stringify({
+        id: previewId,
+        owner: "test",
+        expiresAt: "2030-01-01T00:00:00.000Z",
+        createdAt: "2029-01-01T00:00:00.000Z",
+        previewUrl: `https://${previewId}.dvyu.link`,
+        uploadBase: "unused",
+        uploadId
+      }));
+      return;
+    }
+    response.statusCode = 204;
+    response.end();
+  });
+
+  try {
+    server.listen(0, "127.0.0.1");
+    await once(server, "listening");
+    const address = server.address();
+    assert(address && typeof address === "object");
+    const result = await runCli(["create", siteRoot, "--no-comments"], {
+      HOME: home,
+      DVY_API_URL: `http://127.0.0.1:${address.port}`
+    });
+    assert.equal(result.code, 0, result.stderr);
+    const createRequest = requests.find((request) => request.method === "POST" && request.url === "/api/previews");
+    assert(createRequest);
+    const createBody = JSON.parse(createRequest.body.toString("utf8"));
+    assert.equal(createBody.commentsEnabled, false);
+    assert.equal("commentAuthKey" in createBody, false);
   } finally {
     server.close();
     await rm(temporaryRoot, { recursive: true, force: true });

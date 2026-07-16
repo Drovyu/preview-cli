@@ -60,6 +60,10 @@ export type PreviewRecord = {
   id: string;
   owner: string;
   supporter_id?: string | null;
+  comment_auth_key?: string | null;
+  comments_expires_at?: string | null;
+  comments_enabled?: number;
+  pending_comments_enabled?: number | null;
   total_size: number;
   expires_at: string;
   created_at: string;

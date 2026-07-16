@@ -26,6 +26,7 @@ const messages = {
         buildProjectArgument: "project directory to build and preview",
         createCommand: "Encrypt and upload a static preview",
         createPathArgument: "static file or directory to preview",
+        commentsOption: "disable comments for this preview",
         deleteAllDone: "Deleted all previews",
         deleteCommand: "Delete a preview",
         deleteIdArgument: "preview id, or 'all'",
@@ -101,6 +102,7 @@ const messages = {
         buildProjectArgument: "ビルドしてプレビューするプロジェクトディレクトリ",
         createCommand: "静的ファイルを暗号化してプレビューを作成",
         createPathArgument: "プレビューする静的ファイルまたはディレクトリ",
+        commentsOption: "このプレビューのコメント機能を無効にする",
         deleteAllDone: "すべてのプレビューを削除しました",
         deleteCommand: "プレビューを削除",
         deleteIdArgument: "プレビュー ID、または 'all'",
@@ -194,6 +196,7 @@ Examples:
   dvyu preview ./my-app
   dvyu preview --out-dir build
   dvyu preview -p
+  dvyu preview --no-comments
 
 Supported builders:
   Storybook -> builds to storybook-static by default
@@ -208,6 +211,7 @@ Examples:
   dvyu create ./dist
   dvyu create ./index.html
   dvyu create ./dist -p
+  dvyu create ./dist --no-comments
 
 If path is omitted, dvyu uses ./dist when present, otherwise ./index.html.
 The selected file or directory must contain an HTML entrypoint.
@@ -218,6 +222,7 @@ Examples:
   dvyu update ./dist
   dvyu update <preview-id> ./dist
   dvyu update -p
+  dvyu update --no-comments
 
 Keeps the same preview URL and encryption key. If no id is given, the latest local preview is used.
 `,
@@ -226,6 +231,7 @@ Examples:
   dvyu recreate
   dvyu recreate ./dist
   dvyu recreate <preview-id> ./dist
+  dvyu recreate --no-comments
 
 Deletes the old preview and creates a new URL. Use dvyu update when the URL must stay the same.
 `,
@@ -276,6 +282,7 @@ Removes ~/.dvyu, including saved URLs, encryption keys, language settings, and d
   dvyu preview ./my-app
   dvyu preview --out-dir build
   dvyu preview -p
+  dvyu preview --no-comments
 
 対応ビルダー:
   Storybook -> 既定では storybook-static にビルド
@@ -290,6 +297,7 @@ Astroの--out-dirは、astro.config.*で設定済みのoutDirを指定するた�
   dvyu create ./dist
   dvyu create ./index.html
   dvyu create ./dist -p
+  dvyu create ./dist --no-comments
 
 パス省略時は ./dist を優先し、なければ ./index.html を使います。
 選択したファイルまたはディレクトリには HTML のエントリーポイントが必要です。
@@ -300,6 +308,7 @@ Astroの--out-dirは、astro.config.*で設定済みのoutDirを指定するた�
   dvyu update ./dist
   dvyu update <preview-id> ./dist
   dvyu update -p
+  dvyu update --no-comments
 
 同じプレビュー URL と暗号化キーを維持します。ID 省略時は最新のローカルプレビューを使います。
 `,
@@ -308,6 +317,7 @@ Astroの--out-dirは、astro.config.*で設定済みのoutDirを指定するた�
   dvyu recreate
   dvyu recreate ./dist
   dvyu recreate <preview-id> ./dist
+  dvyu recreate --no-comments
 
 古いプレビューを削除して新しい URL を作ります。URL を維持したい場合は dvyu update を使ってください。
 `,
@@ -355,11 +365,11 @@ function parseTtl(value) {
     }
     return seconds;
 }
-function previewOptions(permanence, ttl) {
+function previewOptions(permanence, ttl, comments = true) {
     const ttlSeconds = parseTtl(ttl);
     if (permanence && ttlSeconds !== undefined)
         throw new Error(t("ttlConflict"));
-    return { permanence, ttlSeconds };
+    return { permanence, ttlSeconds, comments };
 }
 function truncateMiddle(value, maxLength) {
     if (value.length <= maxLength)
@@ -639,11 +649,14 @@ async function createEncryptedPreview(inputPath, apiUrl = getApiUrl(), options =
     await requireSupporterOptions(apiUrl, options);
     const { key, keyString } = await generatePreviewKey();
     const payload = await prepareEncryptedPreview(inputPath, key);
+    const commentAuthKey = options.comments === false ? undefined : await hashSecret(`dvyu-comment-auth-v1:${keyString}`);
     const created = await createPreview(apiUrl, {
         totalSize: payload.totalSize,
         encryptedSize: payload.encryptedSize,
         fileCount: payload.files.length,
         files: payload.files.map((file) => ({ storageKey: file.storageKey, encryptedSize: file.bytes.byteLength })),
+        commentAuthKey,
+        commentsEnabled: options.comments !== false,
         ttlSeconds: options.ttlSeconds,
         permanence: options.permanence
     });
@@ -672,11 +685,14 @@ async function updateEncryptedPreview(saved, inputPath, apiUrl = saved.apiUrl, o
     await requireSupporterOptions(apiUrl, options);
     const key = await importEncryptionKey(saved.key);
     const payload = await prepareEncryptedPreview(inputPath, key);
+    const commentAuthKey = options.comments === false ? undefined : await hashSecret(`dvyu-comment-auth-v1:${saved.key}`);
     const updated = await updatePreview(apiUrl, saved.id, {
         totalSize: payload.totalSize,
         encryptedSize: payload.encryptedSize,
         fileCount: payload.files.length,
         files: payload.files.map((file) => ({ storageKey: file.storageKey, encryptedSize: file.bytes.byteLength })),
+        commentAuthKey,
+        commentsEnabled: options.comments !== false,
         ttlSeconds: options.ttlSeconds,
         permanence: options.permanence
     });
@@ -836,6 +852,7 @@ function registerBuildPreviewCommand() {
         .option("-o, --out-dir <path>", t("buildOutputOption"))
         .option("-p, --permanence", t("permanenceOption"))
         .option("--ttl <duration>", t("ttlOption"))
+        .option("--no-comments", t("commentsOption"))
         .description(t("previewCommand"))
         .addHelpText("after", helpText("preview"))
         .action(async (project, options) => {
@@ -854,7 +871,7 @@ function registerBuildPreviewCommand() {
         await runBuild(projectPath, packageManager, builder, pkg, outputPath);
         if (!await pathExists(outputPath))
             throw new Error(t("buildOutputNotFound", outputPath));
-        const { url, replaced } = await createOrRecreatePreview(outputPath, getApiUrl(), previewOptions(options.permanence, options.ttl));
+        const { url, replaced } = await createOrRecreatePreview(outputPath, getApiUrl(), previewOptions(options.permanence, options.ttl, options.comments));
         console.log(pc.green(replaced ? t("previewRebuilt") : t("previewCreated")));
         console.log(url);
     });
@@ -921,11 +938,12 @@ program
     .argument("[path]", t("createPathArgument"))
     .option("-p, --permanence", t("permanenceOption"))
     .option("--ttl <duration>", t("ttlOption"))
+    .option("--no-comments", t("commentsOption"))
     .description(t("createCommand"))
     .addHelpText("after", helpText("create"))
     .action(async (inputPath, options) => {
     const sourcePath = await resolveCreateInput(inputPath);
-    const { url } = await createEncryptedPreview(sourcePath, getApiUrl(), previewOptions(options.permanence, options.ttl));
+    const { url } = await createEncryptedPreview(sourcePath, getApiUrl(), previewOptions(options.permanence, options.ttl, options.comments));
     console.log(pc.green(t("previewCreated")));
     console.log(url);
 });
@@ -935,11 +953,12 @@ program
     .argument("[path]", t("updatePathArgument"))
     .option("-p, --permanence", t("permanenceOption"))
     .option("--ttl <duration>", t("ttlOption"))
+    .option("--no-comments", t("commentsOption"))
     .description(t("updateCommand"))
     .addHelpText("after", helpText("update"))
     .action(async (target, inputPath, options) => {
     const { saved, sourcePath } = await resolveLocalPreviewTarget(target, inputPath);
-    const { url } = await updateEncryptedPreview(saved, sourcePath, saved.apiUrl, previewOptions(options.permanence, options.ttl));
+    const { url } = await updateEncryptedPreview(saved, sourcePath, saved.apiUrl, previewOptions(options.permanence, options.ttl, options.comments));
     console.log(pc.green(t("previewUpdated")));
     console.log(url);
 });
@@ -949,11 +968,12 @@ program
     .argument("[path]", t("recreatePathArgument"))
     .option("-p, --permanence", t("permanenceOption"))
     .option("--ttl <duration>", t("ttlOption"))
+    .option("--no-comments", t("commentsOption"))
     .description(t("recreateCommand"))
     .addHelpText("after", helpText("recreate"))
     .action(async (target, inputPath, options) => {
     const { saved, sourcePath } = await resolveLocalPreviewTarget(target, inputPath);
-    const { url } = await replacePreview(saved.id, sourcePath, saved.apiUrl, previewOptions(options.permanence, options.ttl));
+    const { url } = await replacePreview(saved.id, sourcePath, saved.apiUrl, previewOptions(options.permanence, options.ttl, options.comments));
     console.log(pc.green(t("previewRecreated")));
     console.log(url);
 });

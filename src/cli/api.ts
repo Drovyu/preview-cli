@@ -122,6 +122,8 @@ export async function createPreview(apiUrl: string, body: {
   encryptedSize: number;
   fileCount: number;
   files: Array<{ storageKey: string; encryptedSize: number }>;
+  commentAuthKey?: string | undefined;
+  commentsEnabled?: boolean | undefined;
   ttlSeconds?: number | undefined;
   permanence?: boolean | undefined;
 }): Promise<CreatePreviewResponse> {
@@ -138,6 +140,8 @@ export async function updatePreview(apiUrl: string, id: string, body: {
   encryptedSize: number;
   fileCount: number;
   files: Array<{ storageKey: string; encryptedSize: number }>;
+  commentAuthKey?: string | undefined;
+  commentsEnabled?: boolean | undefined;
   ttlSeconds?: number | undefined;
   permanence?: boolean | undefined;
 }): Promise<CreatePreviewResponse> {

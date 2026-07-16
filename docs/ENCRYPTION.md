@@ -19,6 +19,12 @@ what the server receives, and how to verify the behavior.
 URL fragments are not part of HTTP requests. The CLI never sends the `#k=`
 value in a request URL, header, or body.
 
+## Comment encryption
+
+The browser encrypts comment text, display names, reply-parent comment ids, target routes, coordinates, and selection data with the same AES-256-GCM key as the preview. Every comment and reply uses a distinct random 12-byte IV and AAD containing the preview id and comment id. D1 stores only the random comment id, IV, ciphertext, ciphertext size, and creation timestamp. Each reply counts as one encrypted comment.
+
+The comments API is authorized with `SHA-256("dvyu-comment-auth-v1:" + key)`, not the preview key itself. This derived value cannot decrypt comment ciphertext. The preview key remains confined to the URL fragment and browser.
+
 ## What the service can observe
 
 The service receives the following unencrypted metadata:
@@ -28,9 +34,10 @@ The service receives the following unencrypted metadata:
 - file count and one random storage key per file;
 - creation, access, and expiry timestamps;
 - retention mode and upload status.
+- encrypted-comment count, ciphertext size, random comment ids, and creation timestamps.
 
 The service does not receive original file contents, original file names,
-MIME types, the entrypoint, or the AES key in plaintext.
+MIME types, the entrypoint, plaintext comment content or coordinates, or the AES key in plaintext.
 
 ## Verification
 

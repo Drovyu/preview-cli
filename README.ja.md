@@ -112,6 +112,7 @@ dvyu preview ./my-app
 dvyu preview --out-dir build
 dvyu preview -p
 dvyu preview --ttl 7d
+dvyu preview --no-comments
 ```
 
 ビルド済みディレクトリからプレビューを作成:
@@ -125,6 +126,7 @@ dvyu create ./dist -p
 パスを省略した場合、`dist` があれば `dist`、なければ `index.html` を使います。
 選択したファイルまたはディレクトリには HTML ファイルが必要です。エントリーポイントは `index.html` を優先し、なければ最初の `.html` ファイルを使います。
 支援者は `create`、`update`、`recreate`、`preview` に `-p`（`--permanence`）を付けると、1ヶ月アクセスがない場合だけ削除されるプレビューを作れます。`--ttl 7d` のように `1h` から `30d` までの有効期限も指定できます。`-p` と `--ttl` は同時に指定できません。
+`preview`、`create`、`update`、`recreate` に `--no-comments` を付けるとコメントUIを無効にできます。`update`では既存の暗号化コメントを保持し、次回このオプションなしで更新すると再表示します。
 
 単一ファイルからプレビューを作成:
 
@@ -307,10 +309,11 @@ dvyu create ./dist
 | 通常の有効期限 | `48時間` | `48時間`、または`--ttl`で`1時間`から`30日` |
 | 永続オプション | 利用不可 | `-p` / `--permanence` |
 | 登録端末 | 端末単位 | 最大`2台` |
+| 保持コメント | 端末全体で最大`300件` | 支援者全体で最大`10,000件` |
 
 サービス全体では通常利用枠を`3GiB`、支援者reserveを追加`7GiB`、絶対上限を`10GiB`とします。通常利用は全体使用量が3GiBへ達すると停止し、支援者だけが10GiBまでのreserveを利用できます。
 
-期限切れのプレビューは閲覧できなくなります。支援者の永続プレビューはアクセスされるたびに未アクセス削除の期限が延長されます。支援者reserveは全支援者で共有され、個別の`300MB`上限も適用されます。
+期限切れのプレビュー本体は閲覧できなくなります。暗号化されたコメントと返信は期限切れから30日間、同じ完全URLで確認でき、`dvyu delete`で明示的に削除した場合は即時削除されます。返信もコメント1件として上限と累計に含まれます。表示名、返信関係、本文、座標は同じプレビュー鍵で暗号化され、表示名は本人確認を行わない任意値です。上限を超えたコメントは古いものから削除されます。支援者の永続プレビューはアクセスされるたびに未アクセス削除の期限が延長されます。支援者reserveは全支援者で共有され、個別の`300MB`上限も適用されます。
 
 ## 公開利用統計
 
@@ -322,9 +325,9 @@ GET https://preview.drovyu.com/api/public/stats
 
 ```json
 {
-  "devices": 1,
   "devicesEver": 1,
   "previewsCreated": 3,
+  "commentsCreated": 10,
   "encryptedBytesPublished": 1068949,
   "encryptedGigabytesPublished": 0.001,
   "lastPublishedAt": "2026-07-10T08:00:00.000Z",
@@ -332,22 +335,23 @@ GET https://preview.drovyu.com/api/public/stats
 }
 ```
 
-- `devices`: 集計時点で有効なプレビューを1件以上持つユニーク端末数。「利用中のデバイス」に使います。
 - `devicesEver`: これまでプレビュー公開に1回以上成功したユニーク端末数。累計利用者数の近似値です。
 - `previewsCreated`: 公開に成功したユニークpreview URL数。`update`は増加しません。
+- `commentsCreated`: 作成されたコメントの累計。10件をまとめて送信した場合は10増加し、削除後も減りません。同じcomment IDの再送は重複加算しません。
 - `encryptedBytesPublished`: 公開に成功したファイル暗号文の累計byte数。`update`で公開した新generationも加算します。
 - `encryptedGigabytesPublished`: 上記を10進のGB（`1GB = 1,000,000,000 bytes`）へ変換し、小数第3位まで丸めた値です。
 - `lastPublishedAt`: 最後にプレビューまたは更新を公開した時刻です。公開実績がなければ`null`です。
 - `updatedAt`: 集計スナップショットを更新した時刻です。
 
-集計は毎日1回、`09:17 JST`頃に更新します。最大約24時間の遅延があります。レスポンスはCORSを許可し、1時間cacheできます。LPではraw byteから任意の桁数で表示することもできます。
+集計は毎時17分頃に更新します。最大約1時間の遅延があります。レスポンスはCORSを許可し、1時間cacheできます。LPではraw byteから任意の桁数で表示することもできます。
 
 ```js
 const stats = await fetch("https://preview.drovyu.com/api/public/stats")
   .then((response) => response.json());
 
-console.log(`${stats.devices}台`);
+console.log(`累計${stats.devicesEver}台`);
 console.log(`${stats.previewsCreated}回`);
+console.log(`${stats.commentsCreated}件のコメント`);
 console.log(`${stats.encryptedGigabytesPublished.toFixed(3)}GB`);
 ```
 
