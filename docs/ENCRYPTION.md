@@ -25,6 +25,8 @@ The browser encrypts comment text, display names, reply-parent comment ids, targ
 
 The comments API is authorized with `SHA-256("dvyu-comment-auth-v1:" + key)`, not the preview key itself. This derived value cannot decrypt comment ciphertext. The preview key remains confined to the URL fragment and browser.
 
+Browser notifications are received by a Service Worker on `notify.dvyu.link`. The server stores the Push subscription endpoint, `p256dh`, `auth`, associated preview id, and a random browser id. A Push subscription whose browser id matches the comment sender is excluded from delivery. Push payloads contain only the preview id and new-comment count. The complete key-bearing URL stays in IndexedDB on the browser that enabled notifications and is never sent to the server. On notification click, the Service Worker reads that local URL and opens the preview.
+
 ## What the service can observe
 
 The service receives the following unencrypted metadata:
@@ -35,6 +37,7 @@ The service receives the following unencrypted metadata:
 - creation, access, and expiry timestamps;
 - retention mode and upload status.
 - encrypted-comment count, ciphertext size, random comment ids, and creation timestamps.
+- Push subscription endpoint, public key material, associated preview id, and random browser id when notifications are enabled.
 
 The service does not receive original file contents, original file names,
 MIME types, the entrypoint, plaintext comment content or coordinates, or the AES key in plaintext.

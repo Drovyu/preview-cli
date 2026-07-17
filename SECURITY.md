@@ -12,9 +12,12 @@ listed by Drovyu and include only the minimum reproduction data needed.
 
 ## Scope
 
-The public repository is intended to make the CLI encryption and upload path
-reviewable. A report may cover the CLI, its encrypted transfer protocol, or a
-behavioral mismatch between the published source and an official build.
+The public repository is intended to make the CLI encryption and upload path,
+the browser Viewer, and the decryption Service Worker reviewable. A report may
+cover those components, the encrypted transfer protocol, or a behavioral
+mismatch between the published source and an official build. Server API,
+storage, quota, supporter, and operational implementation remain out of scope
+for the public snapshot.
 
 このリポジトリの公開issueへ、プレビューURL、`#k=`復号キー、ローカル設定
 ファイルなどの機密情報を投稿しないでください。GitHubの非公開脆弱性報告、

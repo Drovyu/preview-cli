@@ -13,6 +13,10 @@ The CLI encrypts every file and its manifest locally before upload. The AES key
 is kept in the `#k=` URL fragment and is never sent in an HTTP request. See the
 [encryption design and executable verification](docs/ENCRYPTION.md).
 
+The browser-side Viewer, decryption Service Worker reference, and executable
+Viewer artifacts are also published for review. See the
+[Viewer publication and trust boundary](docs/VIEWER.md).
+
 Generated links use an isolated origin for each preview:
 `https://<preview-id>.dvyu.link#k=<decryption-key>`. Existing
 `preview.drovyu.com/p/...` links redirect to the corresponding origin without
@@ -315,6 +319,8 @@ Default limits:
 Service-wide capacity consists of a `3GiB` standard pool, an additional `7GiB` supporter reserve, and a `10GiB` absolute limit. Standard creation stops once total usage reaches 3GiB; only supporters can use the reserve up to 10GiB.
 
 Expired preview content is no longer viewable. Encrypted comments and replies remain available at the same complete URL for 30 days after expiry; an explicit `dvyu delete` removes them immediately. Each reply counts as one comment for limits and cumulative statistics. Display names, reply relationships, text, and anchors are encrypted with the preview key, and display names are unverified user-provided values. Comments beyond the applicable limit are removed oldest first. Supporter permanent previews refresh their inactive cleanup deadline when they are accessed. The supporter reserve is shared by all supporters, and the individual `300MB` limit still applies.
+
+Use **Set up notifications** in the comment menu to enable browser notifications for a preview. Notification permission is managed on the stable `notify.dvyu.link` origin. Push payloads contain only the number of new comments, never comment text, display names, or the decryption key. The complete key-bearing URL stays only in IndexedDB on the browser that enabled notifications; the server receives the Push subscription, preview id, and a random browser id. Comments sent from that same browser do not notify it. Without accounts, the service cannot identify the same person across different browsers or devices, so those comments still trigger notifications.
 
 ## Public Usage Statistics
 
