@@ -3,6 +3,9 @@ let dvyKeyRequest = null;
 let resolveDvyKey = null;
 let dvyKeyTimeout = null;
 let dvyManifest = null;
+let dvyPlainCacheBytes = 0;
+const dvyPlainCache = new Map();
+const dvyPlainCacheMaxBytes = 32 * 1024 * 1024;
 const id = "000000000000000000000000";
 const previewPrefix = "/_preview/";
 const subdomainMode = true;
@@ -45,6 +48,41 @@ async function manifest(){
     dvyManifest=JSON.parse(new TextDecoder().decode(plain));
   }
   return dvyManifest;
+}
+function clearPlainCache(){
+  dvyPlainCache.clear();
+  dvyPlainCacheBytes = 0;
+}
+function trimPlainCache(){
+  while(dvyPlainCacheBytes > dvyPlainCacheMaxBytes && dvyPlainCache.size){
+    const oldestKey = dvyPlainCache.keys().next().value;
+    const oldest = dvyPlainCache.get(oldestKey);
+    dvyPlainCache.delete(oldestKey);
+    dvyPlainCacheBytes -= oldest?.bytes || 0;
+  }
+}
+async function decryptedFile(file){
+  const cached = dvyPlainCache.get(file.storageKey);
+  if(cached){
+    dvyPlainCache.delete(file.storageKey);
+    dvyPlainCache.set(file.storageKey, cached);
+    return cached.promise;
+  }
+  const entry = {bytes:0,promise:null};
+  entry.promise = (async () => {
+    const encrypted = new Uint8Array(await (await fetch("/__dvy/api/p/"+id+"/file?key="+encodeURIComponent(file.storageKey))).arrayBuffer());
+    const plain = new Uint8Array(await crypto.subtle.decrypt({name:"AES-GCM",iv:b64u(file.encryption.iv)}, await key(), encrypted));
+    entry.bytes = plain.byteLength;
+    dvyPlainCacheBytes += entry.bytes;
+    trimPlainCache();
+    return plain;
+  })().catch(error => {
+    if(dvyPlainCache.get(file.storageKey) === entry) dvyPlainCache.delete(file.storageKey);
+    dvyPlainCacheBytes -= entry.bytes;
+    throw error;
+  });
+  dvyPlainCache.set(file.storageKey, entry);
+  return entry.promise;
 }
 function resolvePreviewPath(filePath, manifest){
   let path = filePath.replace(/^\/+/, "");
@@ -120,6 +158,7 @@ self.addEventListener("activate", event => event.waitUntil(self.clients.claim())
 self.addEventListener("message", event => {
   if(event.data?.type==="DVY_KEY" && event.data.id===id && /^[A-Za-z0-9_-]{43}$/.test(event.data.key)){
     dvyManifest = null;
+    clearPlainCache();
     dvyKey = event.data.key;
     clearTimeout(dvyKeyTimeout);
     dvyKeyTimeout = null;
@@ -142,8 +181,7 @@ self.addEventListener("fetch", event => {
       const filePath = pathFromUrl(event.request.url, m);
       const file = filePath ? m.files.find(f => f.path === filePath) : null;
       if(!file) return new Response("Not found", {status:404});
-      const encrypted = new Uint8Array(await (await fetch("/__dvy/api/p/"+id+"/file?key="+encodeURIComponent(file.storageKey))).arrayBuffer());
-      const plain = new Uint8Array(await crypto.subtle.decrypt({name:"AES-GCM",iv:b64u(file.encryption.iv)}, await key(), encrypted));
+      const plain = await decryptedFile(file);
       const isText = file.mime.startsWith("text/") || file.mime === "application/javascript";
       const contentType = isText && !/;\s*charset=/i.test(file.mime) ? file.mime + "; charset=utf-8" : file.mime;
       const headers = new Headers({"content-type": contentType, "cache-control": "no-store", "referrer-policy": "no-referrer", "x-content-type-options": "nosniff", "x-robots-tag": "noindex, nofollow"});
